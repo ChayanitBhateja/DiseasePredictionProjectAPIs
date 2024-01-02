@@ -131,9 +131,15 @@ def get_interactive_plot():
 def get_kpi():
     df = pd.read_csv('./dataset/heart.csv')
     avg_age = df["age"].mean()
+    print(avg_age)
     avg_blood_pressure = df["trtbps"].mean()
-    most_occured_chest_pain_type = df['cp'].mode()
-    return avg_age, avg_blood_pressure, most_occured_chest_pain_type
+    print(avg_blood_pressure)
+    female_ratio = (df["sex"]==0).mean()*100
+    print(female_ratio)
+    response = {'average_age':avg_age,
+                'average_blood_pressure':avg_blood_pressure,
+                'female_ratio': female_ratio}
+    return response
 
 if __name__ == "__main__":
     uvicorn.run(app, host="127.0.0.1", port=8000)
