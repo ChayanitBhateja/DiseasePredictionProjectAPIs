@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Interactive Plot</title>
+    <!-- Include Plotly library -->
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+</head>
+<body>
+    <div id="plot-container"></div>
+
+    <script>
+        // Function to fetch the plot data from the API
+        async function fetchPlot() {
+            try {
+                const response = await fetch('http://127.0.0.1:8000/interactive_plot');
+                console.log(response)
+                const plotData = await response.json();
+                console.log(plotData)
+                // Display the interactive plot on the page
+                JSON.parse(plotData);
+            } catch (error) {
+                console.error('Error fetching plot data:', error);
+            }
+        }
+        //   async function fetchInteractivePlot() {
+        //         try {
+        //             // Make a GET request to the Flask API
+        //             const response = await fetch('http://127.0.0.1:8000/interactive_plot');
+        //             // Check if the request was successful (status code 200)
+        //             if (!response.ok) {
+        //                 throw new Error(`HTTP error! Status: ${response.status}`);
+        //             }
+
+        //             // Parse the JSON response
+        //             const json = await response.json();
+        //             console.log(json)
+        //             // Extract the HTML content from the JSON response
+        //             const htmlContent = json.html;
+        //             console.log(htmlContent)
+        //             // Update the content of a container element with the HTML content
+        //             document.getElementById('interactive-plot-container').innerHTML = htmlContent;
+        //         } catch (error) {
+        //             console.error('Error fetching interactive plot:', error);
+        //         }
+        //     }
+
+        // Call the fetchPlot function when the page loads
+        window.onload = fetchPlot;
+    </script>
+</body>
+</html>
