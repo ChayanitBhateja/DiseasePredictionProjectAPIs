@@ -3,26 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <title>Interactive Plot</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Include Plotly library -->
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 </head>
 <body>
-    <div id="plot-container"></div>
+    <!-- <div id="plot-container"></div> -->
+    <iframe src="http://127.0.0.1:8000/interactive_plot" width="1920" height="1080" frameborder="0"></iframe>
 
-    <script>
-        // Function to fetch the plot data from the API
-        async function fetchPlot() {
-            try {
-                const response = await fetch('http://127.0.0.1:8000/interactive_plot');
-                console.log(response)
-                const plotData = await response.json();
-                console.log(plotData)
-                // Display the interactive plot on the page
-                JSON.parse(plotData);
-            } catch (error) {
-                console.error('Error fetching plot data:', error);
-            }
-        }
+    <!-- <script>
+      document.addEventListener('DOMContentLoaded', function () {
+            // Fetch the Plotly plot JSON from the FastAPI endpoint
+            fetch('http://127.0.0.1:8000/interactive_plot')
+                .then(response => response.json())
+                .then(plotData => {
+                    console.log('====================================');
+                    console.log(plotData);
+                    console.log('====================================');
+                    // Embed the Plotly plot using the JSON data
+                    Plotly.newPlot('plot-container', plotData.data, plotData.layout);
+                })
+                .catch(error => console.error('Error fetching Plotly plot:', error));
+        });
         //   async function fetchInteractivePlot() {
         //         try {
         //             // Make a GET request to the Flask API
@@ -44,9 +46,9 @@
         //             console.error('Error fetching interactive plot:', error);
         //         }
         //     }
-
+        //     fetchPlot()
         // Call the fetchPlot function when the page loads
-        window.onload = fetchPlot;
-    </script>
+        // window.onload = fetchPlot;
+    </script> -->
 </body>
 </html>

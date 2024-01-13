@@ -8,6 +8,10 @@ import seaborn as sns
 import mpld3
 import json
 from fastapi.middleware.cors import CORSMiddleware
+import plotly.express as px
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+from fastapi.responses import JSONResponse, HTMLResponse
 
 app = FastAPI()
 
@@ -18,7 +22,7 @@ origins = ["*"]
 
 data = pd.read_csv("./dataset/heart.csv")
 
-# Add CORS middleware to allow cross-origin requests
+# Add CORS middleware to allow cross-origin requestsqualitative
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
@@ -69,77 +73,134 @@ def get_prediction(
     # print(prediction)
     return {"prediction": prediction}
 
-
 @app.get("/interactive_plot")
 def get_interactive_plot():
-    # Set a seaborn style for better aesthetics
-    sns.set(style="ticks")
-
     # Create a sample DataFrame (replace this with your actual dataset)
     df = pd.read_csv("./dataset/heart.csv")
+    fig1Data = df["age"].value_counts().reset_index(name="count")
+    fig1Data.columns = ["Age", "Count"]
 
-    # Set up subplots
-    fig, axes = plt.subplots(nrows=2, ncols=2, figsize=(12, 10))
+    fig3Data = df["cp"].value_counts().reset_index(name="count")
+    fig3Data.columns = ["CP", "Count"]
 
-    # Plot 1: Age Distribution
-    axes[0, 0].hist(df["age"], bins=10, color="#4CAF50", edgecolor="black")
-    axes[0, 0].set_title("Age Distribution")
-    axes[0, 0].set_xlabel("Age")
-    axes[0, 0].set_ylabel("Frequency")
+    fig4Data = df["sex"].value_counts().reset_index(name="count")
+    fig4Data.columns = ["Sex", "Count"]
+    # Plot 1: Histogram with Gradient using Marginal Plot
+    fig1 = px.bar(
+        fig1Data,
+        x="Age",
+        y="Count",
+        title="Age Distribution",
+        labels={"age": "Age", "count": "Frequency"},
+        template="plotly_white",
+        color="Age",
+        color_continuous_scale=px.colors.sequential.Blues,
+    )
 
     # Plot 2: Scatter Plot of Resting Blood Pressure vs. Cholesterol
-    colors = ["#E53935" if output == 1 else "#3949AB" for output in df["output"]]
-    axes[0, 1].scatter(df["trtbps"], df["chol"], c=colors, edgecolor="black", alpha=0.7)
-    axes[0, 1].set_title("Resting BP vs. Cholesterol")
-    axes[0, 1].set_xlabel("Resting Blood Pressure")
-    axes[0, 1].set_ylabel("Cholesterol")
-
-    # Plot 3: Bar Chart of Chest Pain Types
-    cp_counts = df["cp"].value_counts()
-    axes[1, 0].bar(
-        cp_counts.index, cp_counts.values, color="#FFC107", edgecolor="black"
+    fig2 = px.scatter(
+        df,
+        x="trtbps",
+        y="chol",
+        color="output",
+        # color_discrete_map={0: "#3D85C6", 1: "#E53935"},
+        title="Resting BP vs. Cholesterol",
+        labels={"trtbps": "Resting Blood Pressure", "chol": "Cholesterol"},
+        template="plotly_white",
+        marginal_y="box",
+        marginal_x="box",
+        color_discrete_sequence=px.colors.qualitative.D3_r,
     )
-    axes[1, 0].set_title("Chest Pain Types")
-    axes[1, 0].set_xlabel("Chest Pain Type")
-    axes[1, 0].set_ylabel("Count")
-    axes[1, 0].set_xticks(cp_counts.index)
-    axes[1, 0].set_xticklabels(cp_counts.index)
+    fig2.update_layout(hovermode="x")    
 
-    # Plot 4: Pie Chart of Gender Distribution
-    gender_counts = df["sex"].value_counts()
-    axes[1, 1].pie(
-        gender_counts,
-        labels=["Male", "Female"],
-        colors=["#5E35B1", "#E57373"],
-        autopct="%1.1f%%",
-        startangle=90,
+    fig3 = px.scatter(
+        fig3Data,
+        x="CP",
+        y="Count",
+        color_discrete_map={
+            "0": "#FFC107",
+            "1": "#4CAF50",
+            "2": "#E57373",
+            "3": "#5E35B1",
+        },
+        size="Count",
     )
-    axes[1, 1].set_title("Gender Distribution")
 
-    # Adjust layout
-    plt.tight_layout()
-    plt.grid(False)
+    # Plot 4: Bar Chart of Gender Distribution (Retained)
+    fig4 = px.bar(
+        fig4Data,
+        x="Sex",
+        y="Count",
+        title="Gender Distribution",
+        labels={"sex": "Sex", "count": "Frequency"},
+        template="plotly_white",
+        color="Sex",
+        # color_discrete_map={
+        #     "0": "#FFC107",
+        #     "1": "#4CAF50",
+        # },
+        # color="Count",
+        color_discrete_sequence=px.colors.qualitative.G10,
+    )
 
-    html_str = mpld3.fig_to_html(fig)
-    plot_json = json.dumps(html_str)
-    print(plot_json)
+    # Combine subplots into a single figure
+    fig = make_subplots(
+        rows=2,
+        cols=2,
+        subplot_titles=[
+            "Age Distribution",
+            "Resting BP vs. Cholesterol",
+            "Chest Pain Types",
+            "Gender Distribution",
+        ],
+    )
+    fig.add_trace(fig1["data"][0], 1, 1)
+    fig.add_trace(fig2["data"][0], 1, 2)
+    fig.add_trace(fig3["data"][0], 2, 1)
+    fig.add_trace(fig4["data"][0], 2, 2)    
+    # Update layout
+    fig.update_layout(
+        {"template": "plotly_white"},
+        height=800,
+        width=1280,
+        coloraxis_showscale=False,
+    )
+        
+    # Convert the Plotly figure to HTML
+    plot_html = fig.to_html(full_html=False)
 
-    # Send the JSON representation of the plot in the API response
-    return plot_json
+    # Embed the HTML in the response
+    response_html = f"""
+    <html>
+        <head>
+            <title>Plotly Scatter Plot</title>
+        </head>
+        <body>
+            {plot_html}
+        </body>
+    </html>
+    """
+    return HTMLResponse(content=response_html, status_code=200)
+
 
 @app.get("/kpis")
 def get_kpi():
-    df = pd.read_csv('./dataset/heart.csv')
+    df = pd.read_csv("./dataset/heart.csv")
     avg_age = df["age"].mean()
     print(avg_age)
     avg_blood_pressure = df["trtbps"].mean()
     print(avg_blood_pressure)
-    female_ratio = (df["sex"]==0).mean()*100
+    female_ratio = (df["sex"] == 0).mean() * 100
     print(female_ratio)
-    response = {'average_age':avg_age,
-                'average_blood_pressure':avg_blood_pressure,
-                'female_ratio': female_ratio}
+    response = {
+        "average_age": avg_age,
+        "average_blood_pressure": avg_blood_pressure,
+        "female_ratio": female_ratio,
+    }
     return response
+
+
+# get_interactive_plot()
 
 if __name__ == "__main__":
     uvicorn.run(app, host="127.0.0.1", port=8000)
