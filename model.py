@@ -12,13 +12,20 @@ import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from fastapi.responses import JSONResponse, HTMLResponse
+import pymongo
 
 app = FastAPI()
 
-# xTest would be [[13 numeric values here...]]
-
 # Allow all origins to access the API (replace "*" with your frontend URL in production)
 origins = ["*"]
+
+mongodb_url = "mongodb+srv://dhananjay:8051213479@cluster0.zjg2aoh.mongodb.net/test"
+database_name = "test"
+collection_name = "predictions"
+
+client = pymongo.MongoClient(mongodb_url)
+db = client[database_name]
+collection = db[collection_name]
 
 data = pd.read_csv("./dataset/heart.csv")
 
@@ -73,6 +80,7 @@ def get_prediction(
     # print(prediction)
     return {"prediction": prediction}
 
+
 @app.get("/interactive_plot")
 def get_interactive_plot():
     # Create a sample DataFrame (replace this with your actual dataset)
@@ -111,7 +119,7 @@ def get_interactive_plot():
         marginal_x="box",
         color_discrete_sequence=px.colors.qualitative.D3_r,
     )
-    fig2.update_layout(hovermode="x")    
+    fig2.update_layout(hovermode="x")
 
     fig3 = px.scatter(
         fig3Data,
@@ -157,7 +165,7 @@ def get_interactive_plot():
     fig.add_trace(fig1["data"][0], 1, 1)
     fig.add_trace(fig2["data"][0], 1, 2)
     fig.add_trace(fig3["data"][0], 2, 1)
-    fig.add_trace(fig4["data"][0], 2, 2)    
+    fig.add_trace(fig4["data"][0], 2, 2)
     # Update layout
     fig.update_layout(
         {"template": "plotly_white"},
@@ -165,7 +173,7 @@ def get_interactive_plot():
         width=1280,
         coloraxis_showscale=False,
     )
-        
+
     # Convert the Plotly figure to HTML
     plot_html = fig.to_html(full_html=False)
 
@@ -200,7 +208,50 @@ def get_kpi():
     return response
 
 
-# get_interactive_plot()
+@app.get("/heartbeat_chart")
+def heartbeat_chart():
+    query = {"thalachh": {"$gt": 120}}
+    projection = {"thalachh": 1, "createdAt": 1, "_id": 0}
+    cursor = collection.find(query, projection)
+    mongo_data = list(cursor)
+    client.close()
+    df_heartbeat = pd.DataFrame.from_records(mongo_data)
+    print(df_heartbeat.head())
+    fig = px.line(
+        df_heartbeat,
+        x="createdAt",
+        y="thalachh",
+        title="Timeseries Chart with Points",
+        labels={"createdAt": "Date", "thalachh": "thalachh"},
+        markers=True,
+    )
+
+    # Customize the layout if needed
+    fig.update_layout(
+        xaxis_title="Date",
+        yaxis_title="thalachh",
+        showlegend=True,
+        template="plotly_white",
+        height=800,
+        width=1280,
+    )
+
+    # Convert the Plotly figure to HTML
+    plot_html = fig.to_html(full_html=False)
+
+    # Embed the HTML in the response
+    response_html = f"""
+    <html>
+        <head>
+            <title>Plotly Scatter Plot</title>
+        </head>
+        <body>
+            {plot_html}
+        </body>
+    </html>
+    """
+    return HTMLResponse(content=response_html, status_code=200)
+
 
 if __name__ == "__main__":
     uvicorn.run(app, host="127.0.0.1", port=8000)
