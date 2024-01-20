@@ -19,14 +19,6 @@ app = FastAPI()
 # Allow all origins to access the API (replace "*" with your frontend URL in production)
 origins = ["*"]
 
-mongodb_url = "mongodb+srv://dhananjay:8051213479@cluster0.zjg2aoh.mongodb.net/test"
-database_name = "test"
-collection_name = "predictions"
-
-client = pymongo.MongoClient(mongodb_url)
-db = client[database_name]
-collection = db[collection_name]
-
 data = pd.read_csv("./dataset/heart.csv")
 
 # Add CORS middleware to allow cross-origin requestsqualitative
@@ -210,6 +202,13 @@ def get_kpi():
 
 @app.get("/heartbeat_chart")
 def heartbeat_chart():
+    mongodb_url = "mongodb+srv://dhananjay:8051213479@cluster0.zjg2aoh.mongodb.net/test"
+    database_name = "test"
+    collection_name = "predictions"
+
+    client = pymongo.MongoClient(mongodb_url)
+    db = client[database_name]
+    collection = db[collection_name]
     query = {"thalachh": {"$gt": 120}}
     projection = {"thalachh": 1, "createdAt": 1, "_id": 0}
     cursor = collection.find(query, projection)
@@ -221,18 +220,19 @@ def heartbeat_chart():
         df_heartbeat,
         x="createdAt",
         y="thalachh",
-        title="Timeseries Chart with Points",
+        title="Heart Rate Log",
         labels={"createdAt": "Date", "thalachh": "thalachh"},
         markers=True,
     )
-
+    # Customize the color of the line and markers
+    fig.update_traces(line=dict(color='red'), marker=dict(color='red'))
     # Customize the layout if needed
     fig.update_layout(
         xaxis_title="Date",
-        yaxis_title="thalachh",
+        yaxis_title="Maximum Heart Rate Achieved",
         showlegend=True,
         template="plotly_white",
-        height=800,
+        height=500,
         width=1280,
     )
 
